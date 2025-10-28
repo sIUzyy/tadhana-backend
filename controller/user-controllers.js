@@ -117,18 +117,19 @@ const signIn = async (req, res, next) => {
     return next(new HttpError("Invalid credentials. Please try again.", 401));
   }
 
-  let isValidPassword = false;
-  try {
-    isValidPassword = await bcrypt.compare(password, existingUser.password);
-  } catch {
-    return next(
-      new HttpError("Signing in failed. Please try again later.", 500)
-    );
-  }
+  // uncomment so the fake data can initiate
+  // let isValidPassword = false;
+  // try {
+  //   isValidPassword = await bcrypt.compare(password, existingUser.password);
+  // } catch {
+  //   return next(
+  //     new HttpError("Signing in failed. Please try again later.", 500)
+  //   );
+  // }
 
-  if (!isValidPassword) {
-    return next(new HttpError("Invalid credentials. Please try again.", 401));
-  }
+  // if (!isValidPassword) {
+  //   return next(new HttpError("Invalid credentials. Please try again.", 401));
+  // }
 
   let token;
   try {

@@ -21,8 +21,8 @@ const userSchema = new Schema({
     },
 
     ageRange: {
-      min: { type: Number, min: 18 },
-      max: { type: Number, min: 18 },
+      min: { type: Number, min: 18, default: 18 }, // start from 18
+      max: { type: Number, min: 18, default: 99 }, // or any max age
     },
 
     maxDistanceKm: { type: Number, min: 0 },
