@@ -10,6 +10,7 @@ const userController = require("../controller/user-controllers");
 
 // middleware
 const fileUpload = require("../middleware/file-upload");
+const checkAuth = require("../middleware/check-auth");
 
 // api/v1/users/signup
 router.post(
@@ -39,6 +40,18 @@ router.post(
 
 // api/v1/users/signin
 router.post("/signin", userController.signIn);
+
+router.use(checkAuth);
+
+// api/v1/users/me - GET
+router.get("/me", userController.getUserProfile);
+
+// api/v1/users/me - UPDATE
+router.patch(
+  "/me",
+  fileUpload.single("photo"),
+  userController.updateUserProfile
+);
 
 // exports
 module.exports = router;

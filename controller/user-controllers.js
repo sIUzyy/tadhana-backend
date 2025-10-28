@@ -62,6 +62,7 @@ const signUp = async (req, res, next) => {
 
   try {
     await createdUser.save();
+    console.log("Created user object:", createdUser);
   } catch (err) {
     return next(
       new HttpError("Signing up failed. Please try again later.", 500)
@@ -84,22 +85,14 @@ const signUp = async (req, res, next) => {
     );
   }
 
-  //   res.status(201).json({
-  //     message: "User signed up successfully.",
-  //     user: {
-  //       id: createdUser.id,
-  //       name: createdUser.name,
-  //       age: createdUser.age,
-  //       gender: createdUser.gender,
-  //       location: createdUser.location,
-  //       photo: createdUser.photo,
-  //     },
-  //     token,
-  //   });
-
   res.status(201).json({
     message: "User signed up successfully.",
-    user: { user: createdUser.id, email: createdUser.email, token: token },
+    user: {
+      id: createdUser.id,
+      name: createdUser.name,
+      email: createdUser.email,
+      token: token,
+    },
   });
 };
 
@@ -152,9 +145,87 @@ const signIn = async (req, res, next) => {
 
   res.status(200).json({
     message: "User signed in successfully.",
-    user: { userId: existingUser.id, email: existingUser.email, token: token },
+    user: {
+      id: existingUser.id,
+      name: existingUser.name,
+      email: existingUser.email,
+      token: token,
+    },
   });
+};
+
+// api/v1/users/me
+const getUserProfile = async (req, res, next) => {
+  const userId = req.userData.userId;
+
+  try {
+    const user = await User.findById(userId).select("-password -preferences");
+
+    if (!user) {
+      return next(new HttpError("User does not exist.", 404));
+    }
+
+    // Normalize the photo path
+    const userObj = user.toObject({ getters: true });
+    if (userObj.photo) {
+      userObj.photo = userObj.photo.replace(/\\/g, "/");
+    }
+
+    res.status(200).json({
+      message: "User profile fetched successfully.",
+      user: userObj,
+    });
+  } catch (err) {
+    console.error(err);
+    return next(
+      new HttpError(
+        "Fetching user profile failed. Please try again later.",
+        500
+      )
+    );
+  }
+};
+
+// api/v1/users/me
+const updateUserProfile = async (req, res, next) => {
+  //
+  const userId = req.userData.userId;
+
+  // need from request body
+  const { name, bio } = req.body;
+
+  try {
+    // updat object
+    const updates = {};
+    if (name) updates.name = name;
+    if (bio !== undefined) updates.bio = bio;
+    if (req.file) updates.photo = req.file.path;
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+      new: true,
+      runValidators: true,
+      select: "-password -preferences",
+    });
+
+    if (!updatedUser) {
+      return next(new HttpError("User does not exist.", 404));
+    }
+
+    updatedUser.photo = updatedUser.photo?.replace(/\\/g, "/");
+
+    res.status(200).json({
+      message: "Profile updated successfully.",
+      user: updatedUser,
+    });
+  } catch (err) {
+    console.error(err);
+    return next(
+      new HttpError("Updating profile failed. Please try again later.", 500)
+    );
+  }
 };
 
 exports.signUp = signUp;
 exports.signIn = signIn;
+exports.getUserProfile = getUserProfile;
+exports.updateUserProfile = updateUserProfile;
