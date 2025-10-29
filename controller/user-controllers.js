@@ -54,8 +54,7 @@ const signUp = async (req, res, next) => {
     photo: req.file.path,
     preferences: {
       gender: "Any",
-      ageRange: { min: 18, max: 18 },
-      maxDistanceKm: 0,
+      ageRange: { min: 18, max: 99 },
     },
     bio: "",
   });
@@ -117,19 +116,18 @@ const signIn = async (req, res, next) => {
     return next(new HttpError("Invalid credentials. Please try again.", 401));
   }
 
-  // uncomment so the fake data can initiate
-  // let isValidPassword = false;
-  // try {
-  //   isValidPassword = await bcrypt.compare(password, existingUser.password);
-  // } catch {
-  //   return next(
-  //     new HttpError("Signing in failed. Please try again later.", 500)
-  //   );
-  // }
+  let isValidPassword = false;
+  try {
+    isValidPassword = await bcrypt.compare(password, existingUser.password);
+  } catch {
+    return next(
+      new HttpError("Signing in failed. Please try again later.", 500)
+    );
+  }
 
-  // if (!isValidPassword) {
-  //   return next(new HttpError("Invalid credentials. Please try again.", 401));
-  // }
+  if (!isValidPassword) {
+    return next(new HttpError("Invalid credentials. Please try again.", 401));
+  }
 
   let token;
   try {
@@ -226,7 +224,79 @@ const updateUserProfile = async (req, res, next) => {
   }
 };
 
+// api/v1/users/preferences - GET
+const getUserPreferences = async (req, res, next) => {
+  const userId = req.userData.userId;
+
+  try {
+    const user = await User.findById(userId).select("preferences");
+
+    if (!user) {
+      return next(new HttpError("User not found.", 404));
+    }
+
+    res.status(200).json({
+      message: "Preferences fetched successfully.",
+      preferences: user.preferences,
+    });
+  } catch (err) {
+    console.error(err);
+    return next(
+      new HttpError("Fetching preferences failed. Please try again later.", 500)
+    );
+  }
+};
+
+// api/v1/users/preferences - UDPATE
+const updateUserPreferences = async (req, res, next) => {
+  const userId = req.userData.userId;
+  const { gender, ageRange } = req.body;
+
+  try {
+    // validate inputs
+    const updates = {};
+    if (gender) {
+      if (!["Male", "Female", "Any"].includes(gender)) {
+        return next(new HttpError("Invalid gender preference.", 400));
+      }
+      updates["preferences.gender"] = gender;
+    }
+
+    if (ageRange) {
+      const { min, max } = ageRange;
+      if (min < 18 || max < 18 || min > max) {
+        return next(
+          new HttpError("Age range must start from 18 and be valid.", 400)
+        );
+      }
+      updates["preferences.ageRange"] = { min, max };
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true, runValidators: true, select: "-password" }
+    );
+
+    if (!updatedUser) {
+      return next(new HttpError("User not found.", 404));
+    }
+
+    res.status(200).json({
+      message: "Preferences updated successfully.",
+      preferences: updatedUser.preferences,
+    });
+  } catch (err) {
+    console.error(err);
+    return next(
+      new HttpError("Updating preferences failed. Please try again later.", 500)
+    );
+  }
+};
+
 exports.signUp = signUp;
 exports.signIn = signIn;
 exports.getUserProfile = getUserProfile;
 exports.updateUserProfile = updateUserProfile;
+exports.updateUserPreferences = updateUserPreferences;
+exports.getUserPreferences = getUserPreferences;

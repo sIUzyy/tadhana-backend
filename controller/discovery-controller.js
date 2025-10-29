@@ -8,38 +8,43 @@ const getDiscoveryUsers = async (req, res, next) => {
   try {
     const userId = req.userData.userId;
 
-    // Get current user
+    // Get current user with preferences
     const currentUser = await User.findById(userId);
     if (!currentUser) return next(new HttpError("User does not exist.", 404));
 
-    // Get or create Discovery doc for current user
+    // Ensure discovery doc exists
     let discovery = await Discovery.findOne({ user: userId });
     if (!discovery) discovery = await Discovery.create({ user: userId });
 
-    // Determine gender filter
-    let genderFilter;
-    if (currentUser.gender === "Any") {
-      genderFilter = ["Male", "Female", "Any"];
-    } else if (currentUser.gender === "Male") {
-      genderFilter = ["Female"];
-    } else if (currentUser.gender === "Female") {
-      genderFilter = ["Male"];
+    // ✅ Extract preferences (with safe defaults)
+    const prefGender = currentUser.preferences?.gender || "Any";
+    const prefAge = currentUser.preferences?.ageRange || { min: 18, max: 99 };
+
+    // ✅ Build gender filter based on preference
+    let genderFilter = [];
+    if (prefGender === "Any") {
+      genderFilter = ["Male", "Female"];
+    } else {
+      genderFilter = [prefGender];
     }
 
-    // Query users: exclude self and already seen users
+    // ✅ Query users who match the preference
     const users = await User.find({
       _id: { $nin: [userId, ...discovery.seenUsers] },
       gender: { $in: genderFilter },
+      age: { $gte: prefAge.min, $lte: prefAge.max },
     }).select("-password");
 
-    res
-      .status(200)
-      .json({ message: "Discovery displayed success", users: users });
+    res.status(200).json({
+      message: "Discovery displayed successfully.",
+      users,
+      preferences: currentUser.preferences, // optional: return for debugging
+    });
   } catch (err) {
     console.error(err);
     return next(
       new HttpError(
-        "Something went wrong while displaying the discovery. Please try again later.",
+        "Something went wrong while displaying discovery users. Please try again later.",
         500
       )
     );
@@ -64,18 +69,18 @@ const swipeUser = async (req, res, next) => {
       discovery.seenUsers.push(targetUserId);
     }
 
-    // If liked, add to likedUsers and check for match
+    // ✅ START of improved logic
     if (liked && !discovery.likedUsers.includes(targetUserId)) {
       discovery.likedUsers.push(targetUserId);
 
-      // ✅ Get or create target user's Discovery doc
+      // Get or create target user's Discovery doc
       let targetDiscovery = await Discovery.findOne({ user: targetUserId });
       if (!targetDiscovery)
         targetDiscovery = await Discovery.create({ user: targetUserId });
 
       // Check if target already liked current user → mutual match
+      let newMatch = false;
       if (targetDiscovery.likedUsers.includes(userId)) {
-        // Add each other to discovery.matches
         if (!discovery.matches.includes(targetUserId))
           discovery.matches.push(targetUserId);
         if (!targetDiscovery.matches.includes(userId))
@@ -83,7 +88,7 @@ const swipeUser = async (req, res, next) => {
 
         await targetDiscovery.save();
 
-        // ✅ Create a Match document if it doesn't exist
+        // Create a Match document if it doesn't exist
         const existingMatch = await Match.findOne({
           users: { $all: [userId, targetUserId] },
         });
@@ -91,12 +96,18 @@ const swipeUser = async (req, res, next) => {
         if (!existingMatch) {
           await Match.create({ users: [userId, targetUserId] });
         }
+
+        newMatch = true; // ✅ mark as new match
       }
+
+      await discovery.save();
+      return res.json({ message: "Swipe recorded", newMatch });
     }
+    // ✅ END of improved logic
 
+    // Default (not liked or already liked)
     await discovery.save();
-
-    res.json({ message: "Swipe recorded", matches: discovery.matches });
+    res.json({ message: "Swipe recorded", newMatch: false });
   } catch (error) {
     console.error(error);
     return next(

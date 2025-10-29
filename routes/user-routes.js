@@ -53,5 +53,11 @@ router.patch(
   userController.updateUserProfile
 );
 
+// api/v1/users/preferences - GET
+router.get("/preferences", userController.getUserPreferences);
+
+// api/v1/users/preferences - UPDATE
+router.patch("/preferences", userController.updateUserPreferences);
+
 // exports
 module.exports = router;
