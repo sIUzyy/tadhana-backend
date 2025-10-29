@@ -12,6 +12,9 @@ router.use(checkAuth);
 // api/v1/match
 router.get("/", matchController.getMatches);
 
+// api/v1/match/:matchId/channel
+router.get("/:matchId/channel", matchController.getMatchChannel);
+
 // api/v1/unmatch/:matchId
 router.delete("/unmatch/:matchId", matchController.unmatchUser);
 

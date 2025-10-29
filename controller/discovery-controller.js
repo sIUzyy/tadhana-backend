@@ -2,6 +2,13 @@ const User = require("../models/schema/user-schema");
 const Discovery = require("../models/schema/discovery-schema");
 const Match = require("../models/schema/match-schema");
 const HttpError = require("../models/error/http-error");
+const StreamChat = require("stream-chat").StreamChat;
+
+// Initialize Stream server client
+const serverClient = StreamChat.getInstance(
+  process.env.STREAM_API_KEY,
+  process.env.STREAM_API_SECRET
+);
 
 // api/v1/discovery
 const getDiscoveryUsers = async (req, res, next) => {
@@ -57,8 +64,13 @@ const swipeUser = async (req, res, next) => {
     const userId = req.userData.userId;
     const { targetUserId, liked } = req.body;
 
-    if (!targetUserId || typeof liked !== "boolean")
+    if (!targetUserId || typeof liked !== "boolean") {
       return next(new HttpError("Invalid request. Try again later.", 400));
+    }
+
+    // ✅ Fetch current user
+    const currentUser = await User.findById(userId);
+    if (!currentUser) return next(new HttpError("User does not exist.", 404));
 
     // Get or create current user's Discovery doc
     let discovery = await Discovery.findOne({ user: userId });
@@ -69,7 +81,9 @@ const swipeUser = async (req, res, next) => {
       discovery.seenUsers.push(targetUserId);
     }
 
-    // ✅ START of improved logic
+    let newMatch = false;
+    let channelId = null;
+
     if (liked && !discovery.likedUsers.includes(targetUserId)) {
       discovery.likedUsers.push(targetUserId);
 
@@ -78,8 +92,7 @@ const swipeUser = async (req, res, next) => {
       if (!targetDiscovery)
         targetDiscovery = await Discovery.create({ user: targetUserId });
 
-      // Check if target already liked current user → mutual match
-      let newMatch = false;
+      // Check for mutual like → new match
       if (targetDiscovery.likedUsers.includes(userId)) {
         if (!discovery.matches.includes(targetUserId))
           discovery.matches.push(targetUserId);
@@ -88,26 +101,51 @@ const swipeUser = async (req, res, next) => {
 
         await targetDiscovery.save();
 
-        // Create a Match document if it doesn't exist
-        const existingMatch = await Match.findOne({
+        // Check if Match document exists
+        let existingMatch = await Match.findOne({
           users: { $all: [userId, targetUserId] },
         });
 
         if (!existingMatch) {
-          await Match.create({ users: [userId, targetUserId] });
+          // Ensure both users exist in Stream
+          await serverClient.upsertUser({
+            id: userId,
+            name: currentUser.name,
+            image: currentUser.photo,
+          });
+
+          const targetUser = await User.findById(targetUserId);
+          await serverClient.upsertUser({
+            id: targetUserId,
+            name: targetUser.name,
+            image: targetUser.photo,
+          });
+
+          // Create Stream channel
+          const channel = serverClient.channel("messaging", {
+            members: [userId, targetUserId],
+            created_by_id: userId,
+          });
+          await channel.create();
+
+          // Save Match document with channelId
+          existingMatch = await Match.create({
+            users: [userId, targetUserId],
+            channelId: channel.id,
+          });
         }
 
-        newMatch = true; // ✅ mark as new match
+        newMatch = true;
+        channelId = existingMatch.channelId;
       }
 
       await discovery.save();
-      return res.json({ message: "Swipe recorded", newMatch });
+      return res.json({ message: "Swipe recorded", newMatch, channelId });
     }
-    // ✅ END of improved logic
 
     // Default (not liked or already liked)
     await discovery.save();
-    res.json({ message: "Swipe recorded", newMatch: false });
+    res.json({ message: "Swipe recorded", newMatch: false, channelId: null });
   } catch (error) {
     console.error(error);
     return next(

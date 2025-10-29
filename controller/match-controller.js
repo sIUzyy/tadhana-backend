@@ -77,5 +77,21 @@ const unmatchUser = async (req, res, next) => {
   }
 };
 
+// api/v1/match/:matchId/channel
+const getMatchChannel = async (req, res, next) => {
+  try {
+    const { matchId } = req.params;
+    const match = await Match.findById(matchId);
+
+    if (!match) return next(new HttpError("Match not found", 404));
+
+    res.status(200).json({ channelId: match.channelId });
+  } catch (err) {
+    console.error(err);
+    return next(new HttpError("Failed to fetch match channel", 500));
+  }
+};
+
 exports.getMatches = getMatches;
 exports.unmatchUser = unmatchUser;
+exports.getMatchChannel = getMatchChannel;

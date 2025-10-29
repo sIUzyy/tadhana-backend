@@ -12,6 +12,7 @@ const cors = require("cors");
 const usersRoutes = require("./routes/user-routes");
 const discoveryRoutes = require("./routes/discovery-routes");
 const matchRoutes = require("./routes/match-routes");
+const streamRoutes = require("./routes/stream-routes");
 
 // ---- connection configuration ----
 const PORT = process.env.PORT || process.env.PORT_ALTER; // port configuration
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 app.use("/api/v1/users", usersRoutes);
 app.use("/api/v1/discovery", discoveryRoutes);
 app.use("/api/v1/match", matchRoutes);
+app.use("/api/v1/stream", streamRoutes);
 
 /*
   middleware to handle any request that doesn't match an existing route
