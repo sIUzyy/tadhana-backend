@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const path = require("path");
 const cors = require("cors");
+const fs = require("fs");
 
 // ---- import routes ----
 const usersRoutes = require("./routes/user-routes");
@@ -64,6 +65,13 @@ app.use((error, req, res, next) => {
   if (req.file) {
     fs.unlink(req.file.path, (err) => {
       console.log(err);
+    });
+  }
+
+  // catch the file-upload.js (multer) error
+  if (error.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({
+      message: "File is too large. Maximum allowed size is 2 MB.",
     });
   }
 

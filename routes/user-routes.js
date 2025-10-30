@@ -41,6 +41,7 @@ router.post(
 // api/v1/users/signin
 router.post("/signin", userController.signIn);
 
+// check if user is authenticated (all route below is private)
 router.use(checkAuth);
 
 // api/v1/users/me - GET

@@ -1,7 +1,11 @@
+// on the top (require)
 require("dotenv").config();
-const BASE_URL = "http://localhost:5000";
 const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs"); // ✅ for password hashing
+
+// password hashing
+const bcrypt = require("bcryptjs");
+
+// user model
 const User = require("../models/schema/user-schema");
 
 mongoose
@@ -114,9 +118,9 @@ const users = [
 async function seed() {
   try {
     await User.deleteMany();
-    console.log("🧹 Old users removed.");
+    console.log("Old users removed.");
 
-    // ✅ Hash passwords before saving
+    // hash passwords before saving
     const hashedUsers = await Promise.all(
       users.map(async (user) => {
         const hashedPassword = await bcrypt.hash(user.password, 10);
@@ -125,10 +129,10 @@ async function seed() {
     );
 
     const created = await User.insertMany(hashedUsers);
-    console.log("✅ Marvel users created:");
+    console.log("Marvel users created:");
     created.forEach((u) => console.log(` - ${u.name} (${u.email})`));
   } catch (err) {
-    console.error("❌ Seeding failed:", err);
+    console.error("Seeding failed:", err);
   } finally {
     mongoose.connection.close();
   }

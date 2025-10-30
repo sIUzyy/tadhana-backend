@@ -2,12 +2,13 @@
 const express = require("express");
 const router = express.Router();
 
+// controller
 const streamController = require("../controller/stream-controller");
 
 // middleware
 const checkAuth = require("../middleware/check-auth");
 
-// Get Stream token for logged-in user
+// get stream token for logged-in user
 router.get("/token", checkAuth, streamController.getStreamToken);
 
 module.exports = router;
