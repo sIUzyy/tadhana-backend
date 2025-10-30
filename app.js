@@ -2,6 +2,7 @@
 require("dotenv").config();
 
 // ---- import section ----
+const serverless = require("serverless-http"); // vercel
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -106,3 +107,7 @@ mongoose
     });
   })
   .catch((err) => console.error("MongoDB connection error:", err));
+
+// ---- exports app for vercel deployment ------
+module.exports = app;
+module.exports.handler = serverless(app);
