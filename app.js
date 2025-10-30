@@ -45,6 +45,13 @@ app.use("/api/v1/discovery", discoveryRoutes);
 app.use("/api/v1/match", matchRoutes);
 app.use("/api/v1/stream", streamRoutes);
 
+// ---- welcome message  ----
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "Tadhana - A filipino dating app",
+  });
+});
+
 /*
   middleware to handle any request that doesn't match an existing route
   this runs when no other route handles the request (e.g., user visits a wrong endpoint)
@@ -87,13 +94,6 @@ app.use((error, req, res, next) => {
     message:
       error.message ||
       "Something went wrong on our end. Please try again later.",
-  });
-});
-
-// ---- welcome message  ----
-app.get("/", (req, res) => {
-  res.status(200).json({
-    message: "Tadhana - A filipino dating app",
   });
 });
 
