@@ -2,12 +2,13 @@
 require("dotenv").config();
 
 // ---- import section ----
+const fs = require("fs");
+const cors = require("cors");
+const path = require("path");
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const path = require("path");
-const cors = require("cors");
-const fs = require("fs");
+const HttpError = require("./models/error/http-error");
 
 // ---- import routes ----
 const usersRoutes = require("./routes/user-routes");
