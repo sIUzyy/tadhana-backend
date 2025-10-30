@@ -9,6 +9,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const HttpError = require("./models/error/http-error");
+const serverless = require("serverless-http"); // <-- important
 
 // ---- import routes ----
 const usersRoutes = require("./routes/user-routes");
@@ -98,12 +99,27 @@ app.use((error, req, res, next) => {
 });
 
 // ---- connection section (local) ------
-mongoose
-  .connect(URL_STRING)
-  .then(() => {
-    app.listen(PORT, GLOBAL_ACCESS, () => {
-      console.log("CONNECTED TO MONGODB...");
-      console.log(`SERVER RUNNING ON PORT ${PORT}`);
-    });
-  })
-  .catch((err) => console.error("MongoDB connection error:", err));
+// mongoose
+//   .connect(URL_STRING)
+//   .then(() => {
+//     app.listen(PORT, GLOBAL_ACCESS, () => {
+//       console.log("CONNECTED TO MONGODB...");
+//       console.log(`SERVER RUNNING ON PORT ${PORT}`);
+//     });
+//   })
+//   .catch((err) => console.error("MongoDB connection error:", err));
+
+// MongoDB connection
+let conn = null;
+
+async function connectToDatabase() {
+  if (conn) return conn; // reuse existing connection
+  conn = await mongoose.connect(process.env.URL_STRING);
+  return conn;
+}
+
+// export the handler for Vercel
+module.exports.handler = serverless(app);
+
+// optional: connect to DB immediately on cold start
+connectToDatabase().then(() => console.log("MongoDB connected"));
