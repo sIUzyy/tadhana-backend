@@ -59,5 +59,8 @@ router.get("/preferences", userController.getUserPreferences);
 // api/v1/users/preferences - UPDATE
 router.patch("/preferences", userController.updateUserPreferences);
 
+// api/v1/users/:id
+router.get("/:id", userController.getUserById);
+
 // exports
 module.exports = router;

@@ -90,6 +90,7 @@ const signUp = async (req, res, next) => {
       id: createdUser.id,
       name: createdUser.name,
       email: createdUser.email,
+      photo: createdUser.photo,
       token: token,
     },
   });
@@ -113,7 +114,12 @@ const signIn = async (req, res, next) => {
   }
 
   if (!existingUser) {
-    return next(new HttpError("Invalid credentials. Please try again.", 401));
+    return next(
+      new HttpError(
+        "The email you entered is incorrect. Please try again.",
+        401
+      )
+    );
   }
 
   let isValidPassword = false;
@@ -126,7 +132,12 @@ const signIn = async (req, res, next) => {
   }
 
   if (!isValidPassword) {
-    return next(new HttpError("Invalid credentials. Please try again.", 401));
+    return next(
+      new HttpError(
+        "The password you entered is incorrect. Please try again.",
+        401
+      )
+    );
   }
 
   let token;
@@ -148,6 +159,7 @@ const signIn = async (req, res, next) => {
       id: existingUser.id,
       name: existingUser.name,
       email: existingUser.email,
+      photo: existingUser.photo,
       token: token,
     },
   });
@@ -182,6 +194,24 @@ const getUserProfile = async (req, res, next) => {
         500
       )
     );
+  }
+};
+
+// api/v1/users/:id
+const getUserById = async (req, res, next) => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findById(id).select("-password");
+    if (!user) return next(new HttpError("User not found.", 404));
+
+    // Return the raw user object (no photo path modification)
+    const userObj = user.toObject({ getters: true });
+
+    res.status(200).json({ user: userObj });
+  } catch (err) {
+    console.error(err);
+    return next(new HttpError("Fetching user failed.", 500));
   }
 };
 
@@ -297,6 +327,7 @@ const updateUserPreferences = async (req, res, next) => {
 exports.signUp = signUp;
 exports.signIn = signIn;
 exports.getUserProfile = getUserProfile;
+exports.getUserById = getUserById;
 exports.updateUserProfile = updateUserProfile;
 exports.updateUserPreferences = updateUserPreferences;
 exports.getUserPreferences = getUserPreferences;
