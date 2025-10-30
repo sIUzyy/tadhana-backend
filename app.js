@@ -9,7 +9,6 @@ const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const HttpError = require("./models/error/http-error");
-const serverless = require("serverless-http"); // <-- important
 
 // ---- import routes ----
 const usersRoutes = require("./routes/user-routes");
@@ -31,7 +30,10 @@ app.use("/uploads/images", express.static(path.join("uploads", "images")));
 
 // cors
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*"); // replace the "*" later with my frontend's URL, like "http://localhost:3000"
+  res.setHeader(
+    "Access-Control-Allow-Origin",
+    "https://tadhana-filipino-dating-app.onrender.com"
+  ); // replace the "*" later with my frontend's URL, like "http://localhost:3000"
   res.setHeader(
     "Access-Control-Allow-Headers",
     "Origin, X-Request-With, Content-Type, Accept, Authorization"
@@ -99,27 +101,12 @@ app.use((error, req, res, next) => {
 });
 
 // ---- connection section (local) ------
-// mongoose
-//   .connect(URL_STRING)
-//   .then(() => {
-//     app.listen(PORT, GLOBAL_ACCESS, () => {
-//       console.log("CONNECTED TO MONGODB...");
-//       console.log(`SERVER RUNNING ON PORT ${PORT}`);
-//     });
-//   })
-//   .catch((err) => console.error("MongoDB connection error:", err));
-
-// MongoDB connection
-let conn = null;
-
-async function connectToDatabase() {
-  if (conn) return conn; // reuse existing connection
-  conn = await mongoose.connect(process.env.URL_STRING);
-  return conn;
-}
-
-// export the handler for Vercel
-module.exports.handler = serverless(app);
-
-// optional: connect to DB immediately on cold start
-connectToDatabase().then(() => console.log("MongoDB connected"));
+mongoose
+  .connect(URL_STRING)
+  .then(() => {
+    app.listen(PORT, GLOBAL_ACCESS, () => {
+      console.log("CONNECTED TO MONGODB...");
+      console.log(`SERVER RUNNING ON PORT ${PORT}`);
+    });
+  })
+  .catch((err) => console.error("MongoDB connection error:", err));
