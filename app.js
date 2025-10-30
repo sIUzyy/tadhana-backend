@@ -2,7 +2,6 @@
 require("dotenv").config();
 
 // ---- import section ----
-const serverless = require("serverless-http"); // for vercel (prod)
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
@@ -98,21 +97,12 @@ app.get("/", (req, res) => {
 });
 
 // ---- connection section (local) ------
-// mongoose
-//   .connect(URL_STRING)
-//   .then(() => {
-//     app.listen(PORT, GLOBAL_ACCESS, () => {
-//       console.log("CONNECTED TO MONGODB...");
-//       console.log(`SERVER RUNNING ON PORT ${PORT}`);
-//     });
-//   })
-//   .catch((err) => console.error("MongoDB connection error:", err));
-
-// ---- connection section (prod) ------
 mongoose
-  .connect(process.env.URL_STRING)
-  .then(() => console.log("Connected to MongoDB"))
+  .connect(URL_STRING)
+  .then(() => {
+    app.listen(PORT, GLOBAL_ACCESS, () => {
+      console.log("CONNECTED TO MONGODB...");
+      console.log(`SERVER RUNNING ON PORT ${PORT}`);
+    });
+  })
   .catch((err) => console.error("MongoDB connection error:", err));
-
-// ---- export as serverless function (prod) ----
-module.exports = serverless(app);
